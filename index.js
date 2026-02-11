@@ -11,9 +11,6 @@ const prism = require("prism-media");
 const ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
 const fetch = require("node-fetch");
 
-prism.FFmpeg.setFfmpegPath(ffmpegInstaller.path);
-console.log("Chemin FFmpeg utilisé :", prism.FFmpeg.getFfmpegPath());
-
 process.on("unhandledRejection", console.error);
 
 const client = new Client({
@@ -88,9 +85,13 @@ client.on("messageCreate", async (message) => {
 
     const resource = createAudioResource(stream, {
       inputType: StreamType.Arbitrary,
+      ffmpegPath: ffmpegInstaller.path,
     });
 
-    player.play(resource);
+    queue.push(resource);
+    if (player.state.status === AudioPlayerStatus.Idle) {
+      playNext();
+    }
   } catch (err) {
     console.error("Erreur messageCreate :", err);
   }
@@ -99,5 +100,6 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
