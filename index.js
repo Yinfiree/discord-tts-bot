@@ -25,8 +25,8 @@ const client = new Client({
 let connection;
 const player = createAudioPlayer();
 
-client.once("ready", () => {
-  console.log(`Connecté en tant que ${client.user.tag}`);
+client.once("clientReady", (c) => {
+  console.log(`Connecté en tant que ${c.user.tag}`);
 });
 
 client.on("messageCreate", async (message) => {
@@ -100,6 +100,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
