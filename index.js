@@ -9,6 +9,7 @@ const googleTTS = require("google-tts-api");
 const { Readable } = require("stream");
 const prism = require("prism-media");
 const ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
+const ffmpeg = require("ffmpeg-static");
 const fetch = require("node-fetch");
 
 process.on("unhandledRejection", console.error);
@@ -100,6 +101,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
