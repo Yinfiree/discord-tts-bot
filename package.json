@@ -17,6 +17,7 @@
     "@snazzah/davey": "^0.1.9",
     "discord.js": "^14.25.1",
     "google-tts-api": "^2.0.2",
+    "opusscript": "^0.0.8",
     "node-fetch": "^2.6.7",
     "@ffmpeg-installer/ffmpeg": "^1.1.0"
   }
