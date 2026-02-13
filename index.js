@@ -7,10 +7,6 @@ const {
 } = require("@discordjs/voice");
 const googleTTS = require("google-tts-api");
 const { Readable } = require("stream");
-const prism = require("prism-media");
-const ffmpeg = require("ffmpeg-static");
-process.env.FFMPEG_PATH = ffmpeg;
-const fetch = require("node-fetch");
 
 process.on("unhandledRejection", console.error);
 
@@ -26,8 +22,8 @@ const client = new Client({
 let connection;
 const player = createAudioPlayer();
 
-client.once("clientReady", (c) => {
-  console.log(`Connecté en tant que ${c.user.tag}`);
+client.once("ready", () => {
+  console.log(`Connecté en tant que ${client.user.tag}`);
 });
 
 client.on("messageCreate", async (message) => {
@@ -86,13 +82,9 @@ client.on("messageCreate", async (message) => {
 
     const resource = createAudioResource(stream, {
       inputType: StreamType.Arbitrary,
-      ffmpegPath: ffmpegInstaller.path,
     });
 
-    queue.push(resource);
-    if (player.state.status === AudioPlayerStatus.Idle) {
-      playNext();
-    }
+    player.play(resource);
   } catch (err) {
     console.error("Erreur messageCreate :", err);
   }
