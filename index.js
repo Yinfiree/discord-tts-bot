@@ -7,6 +7,7 @@ const {
 } = require("@discordjs/voice");
 const googleTTS = require("google-tts-api");
 const { Readable } = require("stream");
+require("ffmpeg-static");
 const fetch = require("node-fetch");
 const express = require("express");
 const app = express();
@@ -103,6 +104,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
