@@ -92,9 +92,7 @@ client.on("messageCreate", async (message) => {
 
     const stream = Readable.from(buffer);
 
-    const resource = createAudioResource(stream, {
-      inputType: StreamType.Arbitrary,
-    });
+    const resource = createAudioResource(stream);
 
     player.play(resource);
   } catch (err) {
@@ -105,6 +103,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
