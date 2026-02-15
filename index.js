@@ -7,6 +7,18 @@ const {
 } = require("@discordjs/voice");
 const googleTTS = require("google-tts-api");
 const { Readable } = require("stream");
+const fetch = require("node-fetch");
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Bot is running!");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Web server started on port ${PORT}`);
+});
 
 process.on("unhandledRejection", console.error);
 
@@ -93,6 +105,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
