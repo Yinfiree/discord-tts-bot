@@ -31,45 +31,41 @@ const client = new Client({
   ],
 });
 
-let connection;
+let connection = null; // globale
 const player = createAudioPlayer();
 
-client.once("ready", () => {
-  console.log(`Connecté en tant que ${client.user.tag}`);
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  const member = message.guild.members.cache.get(message.author.id);
+  if (!member?.voice.channel) return;
+
+  // ✅ Connecte seulement si pas déjà connecté
+  if (!connection) {
+    connection = joinVoiceChannel({
+      channelId: member.voice.channel.id,
+      guildId: message.guild.id,
+      adapterCreator: message.guild.voiceAdapterCreator,
+    });
+    connection.subscribe(player);
+    console.log("🔊 Bot connecté en vocal !");
+  }
+
+  // Message TTS
+  const text = `${member.displayName} dit : ${message.content}`;
+  await playTTS(connection, text);
 });
 
+// LEAVE
 client.on("messageCreate", async (message) => {
-  try {
-    if (message.author.bot) return;
-
-    // JOIN
-    if (message.content === "!join") {
-      const channel = message.member.voice.channel;
-      if (!channel) {
-        await message.reply("Tu dois être en vocal.");
-        return;
-      }
-
-      connection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: channel.guild.id,
-        adapterCreator: channel.guild.voiceAdapterCreator,
-      });
-
-      connection.subscribe(player);
-      await message.reply("🔊 Bot connecté !");
-      return;
+  if (message.content === "!leave") {
+    if (connection) {
+      connection.destroy();
+      connection = null;
+      console.log("👋 Bot déconnecté du vocal");
     }
-
-    // LEAVE
-    if (message.content === "!leave") {
-      if (connection) {
-        connection.destroy();
-        connection = null;
-      }
-      await message.reply("👋 Bot déconnecté.");
-      return;
-    }
+  }
+});
 
     // Pas connecté
     if (!connection) return;
@@ -103,6 +99,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
