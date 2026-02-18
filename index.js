@@ -28,15 +28,33 @@ let connection = null;
 const player = createAudioPlayer();
 
 // Fonction TTS
+const { spawn } = require("child_process");
+
 async function playTTS(connection, text) {
   try {
     const url = googleTTS.getAudioUrl(text, { lang: "fr", slow: false });
+
     const res = await fetch(url);
     const buffer = Buffer.from(await res.arrayBuffer());
-    const stream = Readable.from(buffer);
-    const resource = createAudioResource(stream, { inputType: StreamType.Arbitrary });
+
+    const ffmpeg = spawn("ffmpeg", [
+      "-i", "pipe:0",
+      "-f", "s16le",
+      "-ar", "48000",
+      "-ac", "2",
+      "pipe:1",
+    ]);
+
+    ffmpeg.stdin.write(buffer);
+    ffmpeg.stdin.end();
+
+    const resource = createAudioResource(ffmpeg.stdout, {
+      inputType: StreamType.Raw,
+    });
+
     player.play(resource);
     connection.subscribe(player);
+
   } catch (err) {
     console.error("Erreur TTS :", err);
   }
@@ -89,6 +107,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
