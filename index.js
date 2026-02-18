@@ -33,15 +33,15 @@ const player = createAudioPlayer();
 
 // Fonction TTS
 const { spawn } = require("child_process");
+const ffmpegPath = require("ffmpeg-static");
 
 async function playTTS(connection, text) {
   try {
     const url = googleTTS.getAudioUrl(text, { lang: "fr", slow: false });
-
     const res = await fetch(url);
     const buffer = Buffer.from(await res.arrayBuffer());
 
-    const ffmpeg = spawn("ffmpeg", [
+    const ffmpeg = spawn(ffmpegPath, [
       "-i", "pipe:0",
       "-f", "s16le",
       "-ar", "48000",
@@ -111,6 +111,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
