@@ -30,6 +30,9 @@ client.once("ready", () => {
 
 let connection = null;
 const player = createAudioPlayer();
+player.on("stateChange", (oldState, newState) => {
+  console.log(`Audio state: ${oldState.status} -> ${newState.status}`);
+});
 
 // Fonction TTS
 const { spawn } = require("child_process");
@@ -111,6 +114,7 @@ client.on("messageCreate", async (message) => {
 player.on("error", console.error);
 
 client.login(process.env.DISCORD_TOKEN);
+
 
 
 
