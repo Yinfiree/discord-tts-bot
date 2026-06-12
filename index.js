@@ -1,128 +1,127 @@
-const { Client, GatewayIntentBits } = require("discord.js");
-const {
-  joinVoiceChannel,
-  createAudioPlayer,
-  createAudioResource,
-  StreamType,
-} = require("@discordjs/voice");
-const googleTTS = require("google-tts-api");
-const { Readable } = require("stream");
-const fetch = require("node-fetch");
-const express = require("express");
-const app = express();
+require('dotenv').config();
 
-app.get("/", (req, res) => res.send("Bot is running!"));
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Web server started on port ${PORT}`));
+const {
+    Client,
+    GatewayIntentBits,
+    Partials
+} = require('discord.js');
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates,
-  ],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers
+    ],
+    partials: [Partials.GuildMember]
 });
 
-client.once("ready", () => {
-  console.log(`Connecté en tant que ${client.user.tag}`);
+/*
+|--------------------------------------------------------------------------
+| IDS DES RÔLES
+|--------------------------------------------------------------------------
+|
+| Remplace les valeurs ci-dessous par les IDs de tes rôles Discord.
+|
+*/
+
+const VERIFIED_ROLE = '1500535255231107104';
+const UNVERIFIED_ROLE = '1514673663562088621';
+
+const WRONG_ROLES = [
+    '1514826951653855464',
+    '1514827644384968814',
+    '1514827820042551386'
+];
+
+client.once('ready', () => {
+    console.log(`✅ Connecté en tant que ${client.user.tag}`);
 });
 
-let connection = null;
-const player = createAudioPlayer();
-player.on("stateChange", (oldState, newState) => {
-  console.log(`Audio state: ${oldState.status} -> ${newState.status}`);
-});
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
-// Fonction TTS
-const { spawn } = require("child_process");
-const ffmpegPath = require("ffmpeg-static");
+    try {
 
-async function playTTS(connection, text) {
-  try {
-    const url = googleTTS.getAudioUrl(text, { lang: "fr", slow: false });
-    const res = await fetch(url);
-    const buffer = Buffer.from(await res.arrayBuffer());
+        const hasVerified =
+            newMember.roles.cache.has(VERIFIED_ROLE);
 
-    const ffmpeg = spawn(ffmpegPath, [
-      "-i", "pipe:0",
-      "-f", "s16le",
-      "-ar", "48000",
-      "-ac", "2",
-      "pipe:1",
-    ]);
+        const hasWrongRole =
+            WRONG_ROLES.some(role =>
+                newMember.roles.cache.has(role)
+            );
 
-    ffmpeg.stdin.write(buffer);
-    ffmpeg.stdin.end();
+        /*
+        |--------------------------------------------------------------------------
+        | CAS TRICHE
+        |--------------------------------------------------------------------------
+        |
+        | Le membre possède le rôle vérifié ET au moins une mauvaise réponse.
+        |
+        */
 
-    const resource = createAudioResource(ffmpeg.stdout, {
-      inputType: StreamType.Raw,
-    });
+        if (hasVerified && hasWrongRole) {
 
-    player.play(resource);
-    connection.subscribe(player);
+            if (newMember.roles.cache.has(VERIFIED_ROLE)) {
+                await newMember.roles.remove(VERIFIED_ROLE);
+            }
 
-  } catch (err) {
-    console.error("Erreur TTS :", err);
-  }
-}
+            if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
+                await newMember.roles.add(UNVERIFIED_ROLE);
+            }
 
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
+            try {
 
-  const member = message.guild.members.cache.get(message.author.id);
-  if (!member?.voice.channel) return;
+                await newMember.send(
+`🐢 Bonjour voyageur,
 
-  // COMMANDES
-  if (message.content === "!join") {
-    if (!connection) {
-      connection = joinVoiceChannel({
-        channelId: member.voice.channel.id,
-        guildId: message.guild.id,
-        adapterCreator: message.guild.voiceAdapterCreator,
-      });
-      connection.subscribe(player);
-      console.log("🔊 Bot connecté en vocal !");
+Nous avons détecté que plusieurs réponses ont été sélectionnées lors de la vérification.
+
+Pour accéder à l'Île de la Tortue, vous devez retrouver le mot caché dans le règlement et sélectionner uniquement la bonne réponse.
+
+Votre accès n'a donc pas pu être validé.
+
+📜 Merci de relire attentivement le règlement puis de réessayer.
+
+À bientôt sur l'Île de la Tortue 🌴`
+                );
+
+            } catch (err) {
+                console.log(
+                    `Impossible d'envoyer un MP à ${newMember.user.tag}`
+                );
+            }
+
+            console.log(
+                `❌ Vérification refusée pour ${newMember.user.tag}`
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CAS NORMAL
+        |--------------------------------------------------------------------------
+        |
+        | Le membre possède uniquement le rôle vérifié.
+        |
+        */
+
+        if (hasVerified && !hasWrongRole) {
+
+            if (newMember.roles.cache.has(UNVERIFIED_ROLE)) {
+
+                await newMember.roles.remove(
+                    UNVERIFIED_ROLE
+                );
+
+                console.log(
+                    `✅ ${newMember.user.tag} vérifié`
+                );
+            }
+        }
+
+    } catch (error) {
+        console.error(error);
     }
-    return message.reply("🔊 Connecté !");
-  }
-
-  if (message.content === "!leave") {
-    if (connection) {
-      connection.destroy();
-      connection = null;
-      console.log("👋 Bot déconnecté du vocal");
-    }
-    return message.reply("👋 Déconnecté !");
-  }
-
-  // AUTO TTS (lit tout message)
-  if (!connection) {
-    connection = joinVoiceChannel({
-      channelId: member.voice.channel.id,
-      guildId: message.guild.id,
-      adapterCreator: message.guild.voiceAdapterCreator,
-    });
-    connection.subscribe(player);
-    console.log("🔊 Bot connecté en vocal !");
-  }
-
-  const text = `${member.displayName} dit : ${message.content}`;
-  await playTTS(connection, text);
 });
 
-player.on("error", console.error);
-
-client.login(process.env.DISCORD_TOKEN);
-
-
-
-
-
-
-
-
-
-
-
-
+client.login(process.env.TOKEN);
