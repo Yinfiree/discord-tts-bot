@@ -29,7 +29,7 @@ const WRONG_ROLES = [
     '1514827820042551386'
 ];
 
-client.once('ready', () => {
+client.once('clientReady', () => {
     console.log(`✅ Connecté en tant que ${client.user.tag}`);
 });
 
@@ -46,35 +46,71 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
             );
 
         /*
-        |--------------------------------------------------------------------------
-        | SUPPRESSION AUTOMATIQUE DES MAUVAISES RÉPONSES
-        |--------------------------------------------------------------------------
-        */
+|--------------------------------------------------------------------------
+| GESTION DES MAUVAISES RÉPONSES
+|--------------------------------------------------------------------------
+*/
 
-        for (const roleId of WRONG_ROLES) {
+for (const roleId of WRONG_ROLES) {
 
-            if (
-                !oldMember.roles.cache.has(roleId) &&
-                newMember.roles.cache.has(roleId)
-            ) {
+    if (
+        !oldMember.roles.cache.has(roleId) &&
+        newMember.roles.cache.has(roleId)
+    ) {
 
-                setTimeout(async () => {
-                    try {
-                        const member = await newMember.guild.members.fetch(newMember.id);
+        // S'assure qu'il reste non vérifié
+        if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
+            await newMember.roles.add(UNVERIFIED_ROLE);
+        }
 
-                        if (member.roles.cache.has(roleId)) {
-                            await member.roles.remove(roleId);
+        // Si le membre n'est PAS vérifié, on lui envoie un MP d'erreur
+        if (!newMember.roles.cache.has(VERIFIED_ROLE)) {
 
-                            console.log(
-                                `🗑️ Mauvaise réponse retirée à ${member.user.tag}`
-                            );
-                        }
-                    } catch (err) {
-                        console.error(err);
-                    }
-                }, 30000); // 30 secondes
+            try {
+
+                await newMember.send(
+`🐢 Oups !
+
+La réponse sélectionnée n'est pas correcte.
+
+Merci de relire attentivement la charte afin de retrouver le mot caché puis de réessayer.
+
+Votre accès à l'île de la Tortue reste en attente de vérification.`
+                );
+
+            } catch (err) {
+                console.log(
+                    `Impossible d'envoyer un MP à ${newMember.user.tag}`
+                );
             }
         }
+
+        // Suppression automatique après 30 secondes
+        setTimeout(async () => {
+
+            try {
+
+                const member =
+                    await newMember.guild.members.fetch(
+                        newMember.id
+                    );
+
+                if (member.roles.cache.has(roleId)) {
+
+                    await member.roles.remove(roleId);
+
+                    console.log(
+                        `🗑️ Mauvaise réponse retirée à ${member.user.tag}`
+                    );
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+
+        }, 30000);
+    }
+}
 
         /*
         |--------------------------------------------------------------------------
@@ -93,17 +129,17 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
             try {
 
                 await newMember.send(
-`Bonjour voyageur,
+`🐢 Bonjour voyageur,
 
 Nous avons détecté que plusieurs réponses ont été sélectionnées lors de la vérification.
 
-Pour accéder à l'Île de la Tortue, vous devez retrouver le mot caché dans la charte et sélectionner uniquement la bonne réponse.
+Pour accéder à l'île , vous devez retrouver le mot caché dans la charte et sélectionner uniquement la bonne réponse.
 
 Le rôle "Membre vérifié" vous a été retiré automatiquement.
 
 📜 Merci de relire attentivement la charte puis de réessayer.
 
-À bientôt sur l'Île de la Tortue 🌴`
+À bientôt sur l'île de la Tortue 🌴`
                 );
 
             } catch (err) {
