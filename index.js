@@ -29,6 +29,70 @@ const WRONG_ROLES = [
     '1514827820042551386'
 ];
 
+/*
+|--------------------------------------------------------------------------
+| RÔLES SÉPARATEURS
+|--------------------------------------------------------------------------
+*/
+
+const STAFF_SEPARATOR_ROLE = '1508463881172029490';
+const PROFILS_ROLE = '1508465500445737000';
+const NOTIFICATIONS_ROLE = '1508466165662355556';
+
+/*
+|--------------------------------------------------------------------------
+| RÔLES STAFF
+|--------------------------------------------------------------------------
+*/
+
+const STAFF_ROLES = [
+    '1500497671209877655',
+    '1504153060178530335'
+];
+
+/*
+|--------------------------------------------------------------------------
+| RÔLES PROFILS
+|--------------------------------------------------------------------------
+*/
+
+const PROFILE_ROLES = [
+    '1508121548534448138',
+    '1508122530131480797',
+    '1508122731189633155',
+    '1508122890304880781',
+    '1508123032076419303',
+    '1508123202667286629',
+
+    '1508124726122250290',
+    '1508124887565205515',
+    '1508124979047174195',
+
+    '1508123886951202826',
+    '1508124228246044752',
+    '1508124348639215686',
+
+    '1508129165742968954',
+    '1508129425307209771',
+    '1508130384997781654',
+    '1508135328182173777',
+    '1508135427771601036',
+    '1508136585076543630',
+    '1508136737992609792'
+];
+
+/*
+|--------------------------------------------------------------------------
+| RÔLES NOTIFICATIONS
+|--------------------------------------------------------------------------
+*/
+
+const NOTIFICATION_ROLES = [
+    '1508126554536939530',
+    '1508127027205636280',
+    '1508127342122373171'
+];
+
 client.once('clientReady', () => {
     console.log(`✅ Connecté en tant que ${client.user.tag}`);
 });
@@ -37,6 +101,81 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
     try {
 
+/*
+|--------------------------------------------------------------------------
+| RÔLES SÉPARATEURS AUTOMATIQUES
+|--------------------------------------------------------------------------
+*/
+
+// ---------- PROFILS ----------
+
+const hasProfileRole =
+    PROFILE_ROLES.some(role =>
+        newMember.roles.cache.has(role)
+    );
+
+if (
+    hasProfileRole &&
+    !newMember.roles.cache.has(PROFILS_ROLE)
+) {
+
+    await newMember.roles.add(PROFILS_ROLE);
+}
+
+if (
+    !hasProfileRole &&
+    newMember.roles.cache.has(PROFILS_ROLE)
+) {
+
+    await newMember.roles.remove(PROFILS_ROLE);
+}
+
+// ---------- NOTIFICATIONS ----------
+
+const hasNotificationRole =
+    NOTIFICATION_ROLES.some(role =>
+        newMember.roles.cache.has(role)
+    );
+
+if (
+    hasNotificationRole &&
+    !newMember.roles.cache.has(NOTIFICATIONS_ROLE)
+) {
+
+    await newMember.roles.add(NOTIFICATIONS_ROLE);
+}
+
+if (
+    !hasNotificationRole &&
+    newMember.roles.cache.has(NOTIFICATIONS_ROLE)
+) {
+
+    await newMember.roles.remove(NOTIFICATIONS_ROLE);
+}
+
+// ---------- STAFF ----------
+
+const hasStaffRole =
+    STAFF_ROLES.some(role =>
+        newMember.roles.cache.has(role)
+    );
+
+if (
+    hasStaffRole &&
+    !newMember.roles.cache.has(STAFF_SEPARATOR_ROLE)
+) {
+
+    await newMember.roles.add(STAFF_SEPARATOR_ROLE);
+}
+
+if (
+    !hasStaffRole &&
+    newMember.roles.cache.has(STAFF_SEPARATOR_ROLE)
+) {
+
+    await newMember.roles.remove(STAFF_SEPARATOR_ROLE);
+}
+        
         const hasVerified =
             newMember.roles.cache.has(VERIFIED_ROLE);
 
