@@ -18,9 +18,6 @@ const client = new Client({
 |--------------------------------------------------------------------------
 | IDS DES RÔLES
 |--------------------------------------------------------------------------
-|
-| Remplace les valeurs ci-dessous par les IDs de tes rôles Discord.
-|
 */
 
 const VERIFIED_ROLE = '1500535255231107104';
@@ -50,18 +47,44 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
         /*
         |--------------------------------------------------------------------------
+        | SUPPRESSION AUTOMATIQUE DES MAUVAISES RÉPONSES
+        |--------------------------------------------------------------------------
+        */
+
+        for (const roleId of WRONG_ROLES) {
+
+            if (
+                !oldMember.roles.cache.has(roleId) &&
+                newMember.roles.cache.has(roleId)
+            ) {
+
+                setTimeout(async () => {
+                    try {
+                        const member = await newMember.guild.members.fetch(newMember.id);
+
+                        if (member.roles.cache.has(roleId)) {
+                            await member.roles.remove(roleId);
+
+                            console.log(
+                                `🗑️ Mauvaise réponse retirée à ${member.user.tag}`
+                            );
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }, 30000); // 30 secondes
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | CAS TRICHE
         |--------------------------------------------------------------------------
-        |
-        | Le membre possède le rôle vérifié ET au moins une mauvaise réponse.
-        |
         */
 
         if (hasVerified && hasWrongRole) {
 
-            if (newMember.roles.cache.has(VERIFIED_ROLE)) {
-                await newMember.roles.remove(VERIFIED_ROLE);
-            }
+            await newMember.roles.remove(VERIFIED_ROLE);
 
             if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
                 await newMember.roles.add(UNVERIFIED_ROLE);
@@ -70,15 +93,15 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
             try {
 
                 await newMember.send(
-`🐢 Bonjour voyageur,
+`Bonjour voyageur,
 
 Nous avons détecté que plusieurs réponses ont été sélectionnées lors de la vérification.
 
-Pour accéder à l'Île de la Tortue, vous devez retrouver le mot caché dans le règlement et sélectionner uniquement la bonne réponse.
+Pour accéder à l'Île de la Tortue, vous devez retrouver le mot caché dans la charte et sélectionner uniquement la bonne réponse.
 
-Votre accès n'a donc pas pu être validé.
+Le rôle "Membre vérifié" vous a été retiré automatiquement.
 
-📜 Merci de relire attentivement le règlement puis de réessayer.
+📜 Merci de relire attentivement la charte puis de réessayer.
 
 À bientôt sur l'Île de la Tortue 🌴`
                 );
@@ -100,9 +123,6 @@ Votre accès n'a donc pas pu être validé.
         |--------------------------------------------------------------------------
         | CAS NORMAL
         |--------------------------------------------------------------------------
-        |
-        | Le membre possède uniquement le rôle vérifié.
-        |
         */
 
         if (hasVerified && !hasWrongRole) {
