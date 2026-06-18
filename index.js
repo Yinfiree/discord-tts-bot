@@ -305,11 +305,18 @@ if (
     !newMember.roles.cache.has(VERIFIED_ROLE)
 ) {
 
-    await newMember.roles.add(UNVERIFIED_ROLE);
+    if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
 
-    console.log(`${newMember.user.tag} redevient non vérifié`);
+        await newMember.roles.add(UNVERIFIED_ROLE);
+    }
+
+    console.log(
+        `${newMember.user.tag} redevient non vérifié`
+    );
+
+    return;
 }
-
+        
         /*
         |--------------------------------------------------------------------------
         | CAS NORMAL
