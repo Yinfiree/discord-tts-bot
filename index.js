@@ -305,16 +305,9 @@ if (
     !newMember.roles.cache.has(VERIFIED_ROLE)
 ) {
 
-    if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
+    await newMember.roles.add(UNVERIFIED_ROLE);
 
-        await newMember.roles.add(UNVERIFIED_ROLE);
-    }
-
-    console.log(
-        `↩️ ${newMember.user.tag} a perdu le rôle membre vérifié`
-    );
-
-    return;
+    console.log(`${newMember.user.tag} redevient non vérifié`);
 }
 
         /*
