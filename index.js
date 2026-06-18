@@ -294,9 +294,9 @@ Le rôle "Membre vérifié" vous a été retiré automatiquement.
             return;
         }
 
-        /*
+    /*
 |--------------------------------------------------------------------------
-| SI LE MEMBRE RETIRE LE ROLE MEMBRE VÉRIFIÉ
+| LE MEMBRE RETIRE LA RÉACTION DE VÉRIFICATION
 |--------------------------------------------------------------------------
 */
 
@@ -305,15 +305,17 @@ if (
     !newMember.roles.cache.has(VERIFIED_ROLE)
 ) {
 
-    // On lui remet le rôle Non vérifié
+    // Il redevient non vérifié
     if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
 
         await newMember.roles.add(UNVERIFIED_ROLE);
-
-        console.log(
-            `↩️ ${newMember.user.tag} a perdu le rôle vérifié et redevient non vérifié`
-        );
     }
+
+    console.log(
+        `↩️ ${newMember.user.tag} est redevenu non vérifié`
+    );
+
+    return;
 }
 
         /*
