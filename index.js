@@ -99,6 +99,13 @@ client.once('clientReady', () => {
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
+    console.log(
+    `${newMember.user.tag}:`,
+    oldMember.roles.cache.has(VERIFIED_ROLE),
+    "=>",
+    newMember.roles.cache.has(VERIFIED_ROLE)
+);
+
     try {
 
 /*
