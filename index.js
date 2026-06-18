@@ -99,13 +99,6 @@ client.once('clientReady', () => {
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
-    console.log(
-    `${newMember.user.tag}:`,
-    oldMember.roles.cache.has(VERIFIED_ROLE),
-    "=>",
-    newMember.roles.cache.has(VERIFIED_ROLE)
-);
-
     try {
 
 /*
@@ -303,22 +296,19 @@ Le rôle "Membre vérifié" vous a été retiré automatiquement.
 
 /*
 |--------------------------------------------------------------------------
-| SI LE MEMBRE PERD LE ROLE MEMBRE VÉRIFIÉ
+| TOUJOURS AVOIR NON VÉRIFIÉ SI PAS MEMBRE VÉRIFIÉ
 |--------------------------------------------------------------------------
 */
 
 if (
-    oldMember.roles.cache.has(VERIFIED_ROLE) &&
-    !newMember.roles.cache.has(VERIFIED_ROLE)
+    !newMember.roles.cache.has(VERIFIED_ROLE) &&
+    !newMember.roles.cache.has(UNVERIFIED_ROLE)
 ) {
 
-    if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
-
-        await newMember.roles.add(UNVERIFIED_ROLE);
-    }
+    await newMember.roles.add(UNVERIFIED_ROLE);
 
     console.log(
-        `${newMember.user.tag} redevient non vérifié`
+        `↩️ ${newMember.user.tag} redevient non vérifié`
     );
 
     return;
