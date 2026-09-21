@@ -3,7 +3,14 @@ require('dotenv').config();
 const {
     Client,
     GatewayIntentBits,
-    Partials
+    Partials,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle
 } = require('discord.js');
 
 const client = new Client({
@@ -21,13 +28,27 @@ const client = new Client({
 */
 
 const VERIFIED_ROLE = '1500535255231107104';
-const UNVERIFIED_ROLE = '1514673663562088621';
+
+// Nouveau arrivant
+const UNVERIFIED_ROLE = '1541942046770593902';
+
+// Membre accepté
+const ACCEPTED_ROLE = '1541934131208917163';
 
 const WRONG_ROLES = [
     '1514826951653855464',
     '1514827644384968814',
     '1514827820042551386'
 ];
+
+/*
+|--------------------------------------------------------------------------
+| SALONS DES CANDIDATURES
+|--------------------------------------------------------------------------
+*/
+
+const APPLICATION_CHANNEL = '1541929544569847868';
+const STAFF_APPLICATION_CHANNEL = '1541857058213859358';
 
 /*
 |--------------------------------------------------------------------------
@@ -93,8 +114,96 @@ const NOTIFICATION_ROLES = [
     '1508127342122373171'
 ];
 
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
+
     console.log(`✅ Connecté en tant que ${client.user.tag}`);
+
+    try {
+
+        const channel = await client.channels.fetch(
+            APPLICATION_CHANNEL
+        );
+
+        if (!channel) {
+            console.log('❌ Salon Candidature introuvable.');
+            return;
+        }
+
+        // Vérifie si le panneau existe déjà
+        const messages = await channel.messages.fetch({
+            limit: 50
+        });
+
+        const alreadyExists = messages.some(message =>
+            message.components.some(row =>
+                row.components.some(component =>
+                    component.customId === 'application_start'
+                )
+            )
+        );
+
+        if (alreadyExists) {
+            console.log('ℹ️ Le bouton Postuler existe déjà.');
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle('📩 Candidature membre')
+            .setDescription(
+                'Tu souhaites rejoindre les membres de l’île ?\n\n' +
+                'Clique sur le bouton ci-dessous pour déposer ta candidature.'
+            );
+
+        const button = new ButtonBuilder()
+            .setCustomId('application_start')
+            .setLabel('📩 Postuler')
+            .setStyle(ButtonStyle.Primary);
+
+        const row = new ActionRowBuilder()
+            .addComponents(button);
+
+        await channel.send({
+            embeds: [embed],
+            components: [row]
+        });
+
+        console.log('✅ Panneau de candidature installé.');
+
+    } catch (error) {
+
+        console.error(
+            '❌ Erreur lors de l’installation du panneau :',
+            error
+        );
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| NOUVEAU MEMBRE
+|--------------------------------------------------------------------------
+*/
+
+client.on('guildMemberAdd', async (member) => {
+
+    try {
+
+        if (!member.roles.cache.has(UNVERIFIED_ROLE)) {
+
+            await member.roles.add(UNVERIFIED_ROLE);
+
+            console.log(
+                `👋 ${member.user.tag} reçoit le rôle Nouveau arrivant`
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            `❌ Impossible de donner Nouveau arrivant à ${member.user.tag}`,
+            error
+        );
+    }
 });
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
@@ -322,20 +431,485 @@ if (
 
         if (hasVerified && !hasWrongRole) {
 
-            if (newMember.roles.cache.has(UNVERIFIED_ROLE)) {
+    // Retire Nouveau arrivant
+    if (newMember.roles.cache.has(UNVERIFIED_ROLE)) {
 
-                await newMember.roles.remove(
-                    UNVERIFIED_ROLE
+        await newMember.roles.remove(
+            UNVERIFIED_ROLE
+        );
+
+        console.log(
+            `🗑️ Nouveau arrivant retiré à ${newMember.user.tag}`
+        );
+    }
+
+
+    // Retire Membre accepter
+    if (newMember.roles.cache.has(ACCEPTED_ROLE)) {
+
+        await newMember.roles.remove(
+            ACCEPTED_ROLE
+        );
+
+        console.log(
+            `🗑️ Membre accepter retiré à ${newMember.user.tag}`
+        );
+    }
+
+
+    console.log(
+        `✅ ${newMember.user.tag} vérifié`
+    );
+}
+
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| SYSTÈME DE CANDIDATURE
+|--------------------------------------------------------------------------
+*/
+
+client.on('interactionCreate', async (interaction) => {
+
+    try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | BOUTON POSTULER
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            interaction.isButton() &&
+            interaction.customId === 'application_start'
+        ) {
+
+            const modal = new ModalBuilder()
+                .setCustomId('application_modal')
+                .setTitle('📩 Candidature membre');
+
+
+            // Question 1
+            const ageInput = new TextInputBuilder()
+                .setCustomId('application_age')
+                .setLabel('Quel âge as-tu ?')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(3);
+
+
+            // Question 2
+            const motivationInput = new TextInputBuilder()
+                .setCustomId('application_motivation')
+                .setLabel('Pourquoi veux-tu rejoindre le serveur ?')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true)
+                .setMaxLength(1000);
+
+
+            // Question 3
+            const experienceInput = new TextInputBuilder()
+                .setCustomId('application_experience')
+                .setLabel('As-tu déjà joué à ce type de serveur ?')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true)
+                .setMaxLength(1000);
+
+
+            // Question 4
+            const availabilityInput = new TextInputBuilder()
+                .setCustomId('application_availability')
+                .setLabel('Quelles sont tes disponibilités ?')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true)
+                .setMaxLength(1000);
+
+
+            // Question 5
+            const presentationInput = new TextInputBuilder()
+                .setCustomId('application_presentation')
+                .setLabel('Présente-toi rapidement')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true)
+                .setMaxLength(1000);
+
+
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(ageInput),
+                new ActionRowBuilder().addComponents(motivationInput),
+                new ActionRowBuilder().addComponents(experienceInput),
+                new ActionRowBuilder().addComponents(availabilityInput),
+                new ActionRowBuilder().addComponents(presentationInput)
+            );
+
+
+            await interaction.showModal(modal);
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ENVOI DU FORMULAIRE
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            interaction.isModalSubmit() &&
+            interaction.customId === 'application_modal'
+        ) {
+
+            const age =
+                interaction.fields.getTextInputValue(
+                    'application_age'
                 );
+
+            const motivation =
+                interaction.fields.getTextInputValue(
+                    'application_motivation'
+                );
+
+            const experience =
+                interaction.fields.getTextInputValue(
+                    'application_experience'
+                );
+
+            const availability =
+                interaction.fields.getTextInputValue(
+                    'application_availability'
+                );
+
+            const presentation =
+                interaction.fields.getTextInputValue(
+                    'application_presentation'
+                );
+
+
+            const staffChannel =
+                await interaction.guild.channels.fetch(
+                    STAFF_APPLICATION_CHANNEL
+                );
+
+
+            if (!staffChannel) {
+
+                await interaction.reply({
+                    content:
+                        '❌ Le salon des candidatures est introuvable.',
+                    ephemeral: true
+                });
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | EMBED DE LA CANDIDATURE
+            |--------------------------------------------------------------------------
+            */
+
+            const embed = new EmbedBuilder()
+                .setTitle('📩 Nouvelle candidature')
+                .setDescription(
+                    `Candidature de ${interaction.user}`
+                )
+                .addFields(
+
+                    {
+                        name: '👤 Candidat',
+                        value:
+                            `${interaction.user}\n` +
+                            `ID : ${interaction.user.id}`
+                    },
+
+                    {
+                        name: '🎂 Âge',
+                        value: age
+                    },
+
+                    {
+                        name: '💬 Motivation',
+                        value: motivation
+                    },
+
+                    {
+                        name: '🎮 Expérience',
+                        value: experience
+                    },
+
+                    {
+                        name: '🕐 Disponibilités',
+                        value: availability
+                    },
+
+                    {
+                        name: '🙋 Présentation',
+                        value: presentation
+                    }
+                )
+                .setFooter({
+                    text:
+                        `ID candidat : ${interaction.user.id}`
+                });
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | BOUTONS STAFF
+            |--------------------------------------------------------------------------
+            */
+
+            const acceptButton = new ButtonBuilder()
+                .setCustomId(
+                    `application_accept_${interaction.user.id}`
+                )
+                .setLabel('✅ Accepter')
+                .setStyle(ButtonStyle.Success);
+
+
+            const refuseButton = new ButtonBuilder()
+                .setCustomId(
+                    `application_refuse_${interaction.user.id}`
+                )
+                .setLabel('❌ Refuser')
+                .setStyle(ButtonStyle.Danger);
+
+
+            const buttons = new ActionRowBuilder()
+                .addComponents(
+                    acceptButton,
+                    refuseButton
+                );
+
+
+            await staffChannel.send({
+                embeds: [embed],
+                components: [buttons]
+            });
+
+
+            await interaction.reply({
+                content:
+                    '✅ Ta candidature a bien été envoyée au staff !',
+                ephemeral: true
+            });
+
+            console.log(
+                `📩 Nouvelle candidature de ${interaction.user.tag}`
+            );
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ACCEPTATION / REFUS STAFF
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            interaction.isButton() &&
+            (
+                interaction.customId.startsWith(
+                    'application_accept_'
+                ) ||
+                interaction.customId.startsWith(
+                    'application_refuse_'
+                )
+            )
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | VÉRIFICATION DU STAFF
+            |--------------------------------------------------------------------------
+            */
+
+            const isStaff =
+                STAFF_ROLES.some(role =>
+                    interaction.member.roles.cache.has(role)
+                );
+
+
+            if (!isStaff) {
+
+                await interaction.reply({
+                    content:
+                        '❌ Tu n’as pas la permission de gérer les candidatures.',
+                    ephemeral: true
+                });
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | RÉCUPÉRATION DU CANDIDAT
+            |--------------------------------------------------------------------------
+            */
+
+            const parts =
+                interaction.customId.split('_');
+
+            const action = parts[1];
+
+            const userId = parts[2];
+
+
+            const member =
+                await interaction.guild.members
+                    .fetch(userId)
+                    .catch(() => null);
+
+
+            if (!member) {
+
+                await interaction.reply({
+                    content:
+                        '❌ Impossible de retrouver ce membre.',
+                    ephemeral: true
+                });
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | ACCEPTATION
+            |--------------------------------------------------------------------------
+            */
+
+            if (action === 'accept') {
+
+                await member.roles.add(
+                    ACCEPTED_ROLE
+                );
+
+
+                const updatedEmbed =
+                    EmbedBuilder.from(
+                        interaction.message.embeds[0]
+                    )
+                    .setTitle('✅ Candidature acceptée');
+
+
+                await interaction.message.edit({
+                    embeds: [updatedEmbed],
+                    components: []
+                });
+
+
+                try {
+
+                    await member.send(
+`🎉 Félicitations !
+
+Ta candidature pour rejoindre les membres de l’île a été acceptée.
+
+Tu peux maintenant accéder aux espaces réservés aux membres.
+
+🌴 Bienvenue sur l’île de la Tortue !`
+                    );
+
+                } catch (error) {
+
+                    console.log(
+                        `⚠️ Impossible d'envoyer un MP à ${member.user.tag}`
+                    );
+                }
+
+
+                await interaction.reply({
+                    content:
+                        `✅ ${member.user.tag} a été accepté.`,
+                    ephemeral: true
+                });
+
 
                 console.log(
-                    `✅ ${newMember.user.tag} vérifié`
+                    `✅ Candidature acceptée : ${member.user.tag}`
                 );
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | REFUS
+            |--------------------------------------------------------------------------
+            */
+
+            if (action === 'refuse') {
+
+                const updatedEmbed =
+                    EmbedBuilder.from(
+                        interaction.message.embeds[0]
+                    )
+                    .setTitle('❌ Candidature refusée');
+
+
+                await interaction.message.edit({
+                    embeds: [updatedEmbed],
+                    components: []
+                });
+
+
+                try {
+
+                    await member.send(
+`❌ Ta candidature n’a pas été retenue.
+
+Tu pourras éventuellement retenter ta chance plus tard.`
+                    );
+
+                } catch (error) {
+
+                    console.log(
+                        `⚠️ Impossible d'envoyer un MP à ${member.user.tag}`
+                    );
+                }
+
+
+                await interaction.reply({
+                    content:
+                        `❌ ${member.user.tag} a été refusé.`,
+                    ephemeral: true
+                });
+
+
+                console.log(
+                    `❌ Candidature refusée : ${member.user.tag}`
+                );
+
+                return;
             }
         }
 
     } catch (error) {
-        console.error(error);
+
+        console.error(
+            '❌ Erreur dans le système de candidature :',
+            error
+        );
+
+        if (!interaction.replied && !interaction.deferred) {
+
+            await interaction.reply({
+                content:
+                    '❌ Une erreur est survenue. Merci de contacter le staff.',
+                ephemeral: true
+            }).catch(() => {});
+        }
     }
 });
 
