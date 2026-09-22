@@ -29,10 +29,13 @@ const client = new Client({
 
 const VERIFIED_ROLE = '1500535255231107104';
 
-// Nouveau arrivant
-const UNVERIFIED_ROLE = '1541942046770593902';
+// Nouveau membre qui vient d'arriver
+const NEW_ARRIVANT_ROLE = '1541942046770593902';
 
-// Membre accepté
+// Membre accepté par le staff mais pas encore vérifié
+const NON_VERIFIE_ROLE = '1514673663562088621';
+
+// Rôle indiquant que la candidature staff a été acceptée
 const ACCEPTED_ROLE = '1541934131208917163';
 
 const WRONG_ROLES = [
@@ -188,9 +191,10 @@ client.on('guildMemberAdd', async (member) => {
 
     try {
 
-        if (!member.roles.cache.has(UNVERIFIED_ROLE)) {
+        // Nouveau membre = Nouveau arrivant
+        if (!member.roles.cache.has(NEW_ARRIVANT_ROLE)) {
 
-            await member.roles.add(UNVERIFIED_ROLE);
+            await member.roles.add(NEW_ARRIVANT_ROLE);
 
             console.log(
                 `👋 ${member.user.tag} reçoit le rôle Nouveau arrivant`
@@ -790,10 +794,25 @@ client.on('interactionCreate', async (interaction) => {
 
             if (action === 'accept') {
 
-                await member.roles.add(
-                    ACCEPTED_ROLE
-                );
+                // Le staff accepte la candidature
+await member.roles.add(ACCEPTED_ROLE);
 
+// Il n'est plus un nouveau arrivant
+if (member.roles.cache.has(NEW_ARRIVANT_ROLE)) {
+
+    await member.roles.remove(
+        NEW_ARRIVANT_ROLE
+    );
+}
+
+// Il devient "Non vérifié"
+// Il pourra maintenant accéder à la charte
+if (!member.roles.cache.has(NON_VERIFIE_ROLE)) {
+
+    await member.roles.add(
+        NON_VERIFIE_ROLE
+    );
+}
 
                 const updatedEmbed =
                     EmbedBuilder.from(
