@@ -191,10 +191,11 @@ client.on('guildMemberAdd', async (member) => {
 
     try {
 
-        // Nouveau membre = Nouveau arrivant
         if (!member.roles.cache.has(NEW_ARRIVANT_ROLE)) {
 
-            await member.roles.add(NEW_ARRIVANT_ROLE);
+            await member.roles.add(
+                NEW_ARRIVANT_ROLE
+            );
 
             console.log(
                 `👋 ${member.user.tag} reçoit le rôle Nouveau arrivant`
@@ -214,81 +215,84 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
 
     try {
 
-/*
-|--------------------------------------------------------------------------
-| RÔLES SÉPARATEURS AUTOMATIQUES
-|--------------------------------------------------------------------------
-*/
+        /*
+        |--------------------------------------------------------------------------
+        | RÔLES SÉPARATEURS AUTOMATIQUES
+        |--------------------------------------------------------------------------
+        */
 
-// ---------- PROFILS ----------
+        // ---------- PROFILS ----------
 
-const hasProfileRole =
-    PROFILE_ROLES.some(role =>
-        newMember.roles.cache.has(role)
-    );
+        const hasProfileRole =
+            PROFILE_ROLES.some(role =>
+                newMember.roles.cache.has(role)
+            );
 
-if (
-    hasProfileRole &&
-    !newMember.roles.cache.has(PROFILS_ROLE)
-) {
+        if (
+            hasProfileRole &&
+            !newMember.roles.cache.has(PROFILS_ROLE)
+        ) {
+            await newMember.roles.add(PROFILS_ROLE);
+        }
 
-    await newMember.roles.add(PROFILS_ROLE);
-}
+        if (
+            !hasProfileRole &&
+            newMember.roles.cache.has(PROFILS_ROLE)
+        ) {
+            await newMember.roles.remove(PROFILS_ROLE);
+        }
 
-if (
-    !hasProfileRole &&
-    newMember.roles.cache.has(PROFILS_ROLE)
-) {
 
-    await newMember.roles.remove(PROFILS_ROLE);
-}
+        // ---------- NOTIFICATIONS ----------
 
-// ---------- NOTIFICATIONS ----------
+        const hasNotificationRole =
+            NOTIFICATION_ROLES.some(role =>
+                newMember.roles.cache.has(role)
+            );
 
-const hasNotificationRole =
-    NOTIFICATION_ROLES.some(role =>
-        newMember.roles.cache.has(role)
-    );
+        if (
+            hasNotificationRole &&
+            !newMember.roles.cache.has(NOTIFICATIONS_ROLE)
+        ) {
+            await newMember.roles.add(NOTIFICATIONS_ROLE);
+        }
 
-if (
-    hasNotificationRole &&
-    !newMember.roles.cache.has(NOTIFICATIONS_ROLE)
-) {
+        if (
+            !hasNotificationRole &&
+            newMember.roles.cache.has(NOTIFICATIONS_ROLE)
+        ) {
+            await newMember.roles.remove(NOTIFICATIONS_ROLE);
+        }
 
-    await newMember.roles.add(NOTIFICATIONS_ROLE);
-}
 
-if (
-    !hasNotificationRole &&
-    newMember.roles.cache.has(NOTIFICATIONS_ROLE)
-) {
+        // ---------- STAFF ----------
 
-    await newMember.roles.remove(NOTIFICATIONS_ROLE);
-}
+        const hasStaffRole =
+            STAFF_ROLES.some(role =>
+                newMember.roles.cache.has(role)
+            );
 
-// ---------- STAFF ----------
+        if (
+            hasStaffRole &&
+            !newMember.roles.cache.has(STAFF_SEPARATOR_ROLE)
+        ) {
+            await newMember.roles.add(STAFF_SEPARATOR_ROLE);
+        }
 
-const hasStaffRole =
-    STAFF_ROLES.some(role =>
-        newMember.roles.cache.has(role)
-    );
+        if (
+            !hasStaffRole &&
+            newMember.roles.cache.has(STAFF_SEPARATOR_ROLE)
+        ) {
+            await newMember.roles.remove(STAFF_SEPARATOR_ROLE);
+        }
 
-if (
-    hasStaffRole &&
-    !newMember.roles.cache.has(STAFF_SEPARATOR_ROLE)
-) {
 
-    await newMember.roles.add(STAFF_SEPARATOR_ROLE);
-}
+        /*
+        |--------------------------------------------------------------------------
+        | ÉTAT DE VÉRIFICATION
+        |--------------------------------------------------------------------------
+        */
 
-if (
-    !hasStaffRole &&
-    newMember.roles.cache.has(STAFF_SEPARATOR_ROLE)
-) {
-
-    await newMember.roles.remove(STAFF_SEPARATOR_ROLE);
-}
-        
         const hasVerified =
             newMember.roles.cache.has(VERIFIED_ROLE);
 
@@ -297,30 +301,52 @@ if (
                 newMember.roles.cache.has(role)
             );
 
+
         /*
-|--------------------------------------------------------------------------
-| GESTION DES MAUVAISES RÉPONSES
-|--------------------------------------------------------------------------
-*/
+        |--------------------------------------------------------------------------
+        | MAUVAISES RÉPONSES À LA CHARTE
+        |--------------------------------------------------------------------------
+        */
 
-for (const roleId of WRONG_ROLES) {
+        for (const roleId of WRONG_ROLES) {
 
-    if (
-        !oldMember.roles.cache.has(roleId) &&
-        newMember.roles.cache.has(roleId)
-    ) {
+            const selectedWrongAnswer =
+                !oldMember.roles.cache.has(roleId) &&
+                newMember.roles.cache.has(roleId);
 
-        // S'assure qu'il reste non vérifié
-        if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
-            await newMember.roles.add(UNVERIFIED_ROLE);
-        }
+            if (!selectedWrongAnswer) {
+                continue;
+            }
 
-        // Si le membre n'est PAS vérifié, on lui envoie un MP d'erreur
-        if (!newMember.roles.cache.has(VERIFIED_ROLE)) {
 
-            try {
+            /*
+            |--------------------------------------------------------------------------
+            | LE MEMBRE RESTE NON VÉRIFIÉ
+            |--------------------------------------------------------------------------
+            */
 
-                await newMember.send(
+            if (
+                !newMember.roles.cache.has(VERIFIED_ROLE) &&
+                !newMember.roles.cache.has(NON_VERIFIE_ROLE)
+            ) {
+
+                await newMember.roles.add(
+                    NON_VERIFIE_ROLE
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | MESSAGE D'ERREUR
+            |--------------------------------------------------------------------------
+            */
+
+            if (!newMember.roles.cache.has(VERIFIED_ROLE)) {
+
+                try {
+
+                    await newMember.send(
 `🐢 Oups !
 
 La réponse sélectionnée n'est pas correcte.
@@ -328,55 +354,78 @@ La réponse sélectionnée n'est pas correcte.
 Merci de relire attentivement la charte afin de retrouver le mot caché puis de réessayer.
 
 Votre accès à l'île de la Tortue reste en attente de vérification.`
-                );
-
-            } catch (err) {
-                console.log(
-                    `Impossible d'envoyer un MP à ${newMember.user.tag}`
-                );
-            }
-        }
-
-        // Suppression automatique après 30 secondes
-        setTimeout(async () => {
-
-            try {
-
-                const member =
-                    await newMember.guild.members.fetch(
-                        newMember.id
                     );
 
-                if (member.roles.cache.has(roleId)) {
-
-                    await member.roles.remove(roleId);
+                } catch (err) {
 
                     console.log(
-                        `🗑️ Mauvaise réponse retirée à ${member.user.tag}`
+                        `Impossible d'envoyer un MP à ${newMember.user.tag}`
                     );
                 }
-
-            } catch (err) {
-                console.error(err);
             }
 
-        }, 30000);
-    }
-}
+
+            /*
+            |--------------------------------------------------------------------------
+            | SUPPRESSION DE LA MAUVAISE RÉPONSE APRÈS 30 SECONDES
+            |--------------------------------------------------------------------------
+            */
+
+            setTimeout(async () => {
+
+                try {
+
+                    const member =
+                        await newMember.guild.members.fetch(
+                            newMember.id
+                        );
+
+                    if (member.roles.cache.has(roleId)) {
+
+                        await member.roles.remove(roleId);
+
+                        console.log(
+                            `🗑️ Mauvaise réponse retirée à ${member.user.tag}`
+                        );
+                    }
+
+                } catch (err) {
+
+                    console.error(err);
+                }
+
+            }, 30000);
+        }
+
 
         /*
         |--------------------------------------------------------------------------
         | CAS TRICHE
         |--------------------------------------------------------------------------
+        |
+        | Le membre était vérifié mais sélectionne une ou plusieurs
+        | mauvaises réponses.
+        |
         */
 
         if (hasVerified && hasWrongRole) {
 
-            await newMember.roles.remove(VERIFIED_ROLE);
+            // Retire Membre vérifié
+            await newMember.roles.remove(
+                VERIFIED_ROLE
+            );
 
-            if (!newMember.roles.cache.has(UNVERIFIED_ROLE)) {
-                await newMember.roles.add(UNVERIFIED_ROLE);
+
+            // Remet Non vérifié
+            if (
+                !newMember.roles.cache.has(NON_VERIFIE_ROLE)
+            ) {
+
+                await newMember.roles.add(
+                    NON_VERIFIE_ROLE
+                );
             }
+
 
             try {
 
@@ -385,7 +434,7 @@ Votre accès à l'île de la Tortue reste en attente de vérification.`
 
 Nous avons détecté que plusieurs réponses ont été sélectionnées lors de la vérification.
 
-Pour accéder à l'île , vous devez retrouver le mot caché dans la charte et sélectionner uniquement la bonne réponse.
+Pour accéder à l'île, vous devez retrouver le mot caché dans la charte et sélectionner uniquement la bonne réponse.
 
 Le rôle "Membre vérifié" vous a été retiré automatiquement.
 
@@ -395,10 +444,12 @@ Le rôle "Membre vérifié" vous a été retiré automatiquement.
                 );
 
             } catch (err) {
+
                 console.log(
                     `Impossible d'envoyer un MP à ${newMember.user.tag}`
                 );
             }
+
 
             console.log(
                 `❌ Vérification refusée pour ${newMember.user.tag}`
@@ -407,67 +458,48 @@ Le rôle "Membre vérifié" vous a été retiré automatiquement.
             return;
         }
 
-/*
-|--------------------------------------------------------------------------
-| TOUJOURS AVOIR NON VÉRIFIÉ SI PAS MEMBRE VÉRIFIÉ
-|--------------------------------------------------------------------------
-*/
 
-if (
-    !newMember.roles.cache.has(VERIFIED_ROLE) &&
-    !newMember.roles.cache.has(UNVERIFIED_ROLE)
-) {
-
-    await newMember.roles.add(UNVERIFIED_ROLE);
-
-    console.log(
-        `↩️ ${newMember.user.tag} redevient non vérifié`
-    );
-
-    return;
-}
-        
         /*
         |--------------------------------------------------------------------------
-        | CAS NORMAL
+        | CAS NORMAL : MEMBRE VÉRIFIÉ
         |--------------------------------------------------------------------------
         */
 
         if (hasVerified && !hasWrongRole) {
 
-    // Retire Nouveau arrivant
-    if (newMember.roles.cache.has(UNVERIFIED_ROLE)) {
+            // Retire Non vérifié
+            if (
+                newMember.roles.cache.has(NON_VERIFIE_ROLE)
+            ) {
 
-        await newMember.roles.remove(
-            UNVERIFIED_ROLE
-        );
-
-        console.log(
-            `🗑️ Nouveau arrivant retiré à ${newMember.user.tag}`
-        );
-    }
+                await newMember.roles.remove(
+                    NON_VERIFIE_ROLE
+                );
+            }
 
 
-    // Retire Membre accepter
-    if (newMember.roles.cache.has(ACCEPTED_ROLE)) {
+            // Retire Nouveau arrivant s'il existe encore
+            if (
+                newMember.roles.cache.has(NEW_ARRIVANT_ROLE)
+            ) {
 
-        await newMember.roles.remove(
-            ACCEPTED_ROLE
-        );
-
-        console.log(
-            `🗑️ Membre accepter retiré à ${newMember.user.tag}`
-        );
-    }
+                await newMember.roles.remove(
+                    NEW_ARRIVANT_ROLE
+                );
+            }
 
 
-    console.log(
-        `✅ ${newMember.user.tag} vérifié`
-    );
-}
+            console.log(
+                `✅ ${newMember.user.tag} est maintenant vérifié`
+            );
+        }
 
     } catch (error) {
-        console.error(error);
+
+        console.error(
+            '❌ Erreur guildMemberUpdate :',
+            error
+        );
     }
 });
 
